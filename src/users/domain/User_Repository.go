@@ -7,6 +7,7 @@ type IUser interface {
 	GetByCorreo(email string) (*entities.User, error)
 	GetAll() ([]entities.User, error)
 	GetById(id int) (*entities.User, error)
+	GetTotal() (int, error)
 	Update(user entities.User) error
 	Delete(id int) error
 }

@@ -1,0 +1,40 @@
+# Ignorar archivos de configuración sensibles
+.env
+.env.local
+*.env
+
+# Archivos binarios compilados
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Binarios de Go
+*.test
+*.out
+main
+
+# Carpeta de binarios si la usas
+/bin/
+build/
+dist/
+
+# Archivos temporales
+*.log
+*.tmp
+
+# Ignorar dependencias que no necesitas subir
+vendor/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de Docker
+docker-compose.override.yml
+
+# Cache
+*.swp
+.idea/
+.vscode/

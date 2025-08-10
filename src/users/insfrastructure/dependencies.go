@@ -8,12 +8,13 @@ import (
 )
 
 type DependenciesUsers struct {
-	CreateUserController  *controllers.CreateUserController
-	GetAllUsersController *controllers.GetAllUsersController
-	GetByIdUserController *controllers.GetUserByIdController
-	UpdateUserController  *controllers.UpdateUserController
-	DeleteUserController  *controllers.DeleteUserController
-	AuthController        *controllers.AuthController
+	CreateUserController    *controllers.CreateUserController
+	GetAllUsersController   *controllers.GetAllUsersController
+	GetByIdUserController   *controllers.GetUserByIdController
+	GetTotalUsersController *controllers.GetTotalUsersController
+	UpdateUserController    *controllers.UpdateUserController
+	DeleteUserController    *controllers.DeleteUserController
+	AuthController          *controllers.AuthController
 }
 
 func InitUsers() *DependenciesUsers {
@@ -23,16 +24,18 @@ func InitUsers() *DependenciesUsers {
 	createUserApp := application.NewCreateUser(ps)
 	getAllUsersApp := application.NewGetAllUsers(ps)
 	getUserByIdApp := application.NewGetUserById(ps)
+	getTotalUsersApp := application.NewGetTotalUsers(ps)
 	updateUserApp := application.NewUpdateUser(ps)
 	deleteUserApp := application.NewDeleteUser(ps)
 	authService := application.NewAuthService(ps)
 
 	return &DependenciesUsers{
-		CreateUserController:  controllers.NewCreateUserController(createUserApp, authService),
-		GetAllUsersController: controllers.NewGetAllUsersController(getAllUsersApp),
-		GetByIdUserController: controllers.NewGetUserByIdController(getUserByIdApp),
-		UpdateUserController:  controllers.NewUpdateUserController(updateUserApp),
-		DeleteUserController:  controllers.NewDeleteUserController(deleteUserApp),
-		AuthController:        controllers.NewAuthController(authService),
+		CreateUserController:    controllers.NewCreateUserController(createUserApp, authService),
+		GetAllUsersController:   controllers.NewGetAllUsersController(getAllUsersApp),
+		GetByIdUserController:   controllers.NewGetUserByIdController(getUserByIdApp),
+		GetTotalUsersController: controllers.NewGetTotalUsersController(getTotalUsersApp),
+		UpdateUserController:    controllers.NewUpdateUserController(updateUserApp),
+		DeleteUserController:    controllers.NewDeleteUserController(deleteUserApp),
+		AuthController:          controllers.NewAuthController(authService),
 	}
 }
