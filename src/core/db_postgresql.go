@@ -7,6 +7,7 @@ import (
 	_ "github.com/lib/pq"
 	"log"
 	"os"
+	"time"
 )
 
 type Conn_PostgreSQL struct {
@@ -41,7 +42,10 @@ func GetDBPool() *Conn_PostgreSQL {
 		log.Fatalf("Error al abrir la base de datos: %v", err)
 	}
 
-	db.SetMaxOpenConns(10)
+	db.SetMaxOpenConns(3)
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(2 * time.Minute)
+	db.SetConnMaxIdleTime(30 * time.Second)
 
 	if err := db.Ping(); err != nil {
 		db.Close()
