@@ -265,30 +265,30 @@ func (pc *PostgreSQL) GetTotalByModulo(moduloID int) (float64, error) {
 	return total, nil
 }
 
-// Update - Actualizar donación
+// Update
 func (pc *PostgreSQL) Update(donacion entities.Donacion) error {
 	query := `UPDATE donaciones SET 
-              usuario_id = $2, 
-              modulo_id = $3, 
-              monto = $4, 
-              moneda = $5, 
-              estado = $6, 
-              metodo_pago = $7, 
-              transaction_id = $8, 
-              payment_id = $9 
-              WHERE id = $1`
+              usuario_id = $1, 
+              modulo_id = $2, 
+              monto = $3, 
+              moneda = $4, 
+              estado = $5, 
+              metodo_pago = $6, 
+              transaction_id = $7, 
+              payment_id = $8 
+              WHERE id = $9`
 
 	result, err := pc.conn.Exec(
 		query,
-		donacion.ID,
-		donacion.UsuarioID,
-		donacion.ModuloID,
-		donacion.Monto,
-		donacion.Moneda,
-		donacion.Estado,
-		donacion.MetodoPago,
-		donacion.TransactionID,
-		donacion.PaymentID,
+		donacion.UsuarioID,     // $1
+		donacion.ModuloID,      // $2
+		donacion.Monto,         // $3
+		donacion.Moneda,        // $4
+		donacion.Estado,        // $5
+		donacion.MetodoPago,    // $6
+		donacion.TransactionID, // $7
+		donacion.PaymentID,     // $8
+		donacion.ID,            // $9
 	)
 
 	if err != nil {

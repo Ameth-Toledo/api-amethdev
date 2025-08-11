@@ -175,20 +175,19 @@ func (pc *PostgreSQL) GetTotal() (int, error) {
 	return total, nil
 }
 
-// Update - Actualizar comentario
 func (pc *PostgreSQL) Update(comentario entities.Comentario) error {
 	query := `UPDATE comentarios SET 
-              modulo_id = $2, 
-              usuario_id = $3, 
-              texto = $4
-              WHERE id = $1`
+              modulo_id = $1, 
+              usuario_id = $2, 
+              texto = $3
+              WHERE id = $4`
 
 	result, err := pc.conn.Exec(
 		query,
-		comentario.ID,
-		comentario.ModuloID,
-		comentario.UsuarioID,
-		comentario.Texto,
+		comentario.ModuloID,  // $1
+		comentario.UsuarioID, // $2
+		comentario.Texto,     // $3
+		comentario.ID,        // $4
 	)
 
 	if err != nil {
