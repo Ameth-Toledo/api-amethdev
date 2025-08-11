@@ -1,4 +1,3 @@
-# Etapa 1: Build
 FROM golang:1.21-alpine AS builder
 
 WORKDIR /app
@@ -10,7 +9,6 @@ COPY . .
 
 RUN go build -o main .
 
-# Etapa 2: Runtime
 FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
