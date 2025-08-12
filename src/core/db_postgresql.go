@@ -79,5 +79,3 @@ func (conn *Conn_PostgreSQL) FetchRows(query string, values ...interface{}) (*sq
 
 	return rows, nil
 }
-
-//
