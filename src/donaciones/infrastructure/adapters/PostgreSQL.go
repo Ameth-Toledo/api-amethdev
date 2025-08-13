@@ -41,12 +41,22 @@ func (pc *PostgreSQL) Save(donacion entities.Donacion) (entities.Donacion, error
 	return donacion, nil
 }
 
-// GetById - Obtener donación por ID
+// GetById - Obtener donación por ID con nombres
 func (pc *PostgreSQL) GetById(id int) (*entities.Donacion, error) {
-	query := `SELECT id, usuario_id, modulo_id, monto, moneda, estado, metodo_pago, transaction_id, payment_id, fecha_pago 
-              FROM donaciones WHERE id = $1`
+	query := `SELECT 
+              d.id, d.usuario_id, d.modulo_id, d.monto, d.moneda, d.estado, 
+              d.metodo_pago, d.transaction_id, d.payment_id, d.fecha_pago,
+              u.nombres, u.apellido_paterno, u.apellido_materno,
+              m.titulo, c.nombre
+              FROM donaciones d
+              LEFT JOIN usuarios u ON d.usuario_id = u.id
+              LEFT JOIN modulos m ON d.modulo_id = m.id
+              LEFT JOIN cursos c ON m.id_curso = c.id
+              WHERE d.id = $1`
 
 	var donacion entities.Donacion
+	var apellidoMaterno sql.NullString
+
 	err := pc.conn.QueryRow(query, id).Scan(
 		&donacion.ID,
 		&donacion.UsuarioID,
@@ -58,6 +68,11 @@ func (pc *PostgreSQL) GetById(id int) (*entities.Donacion, error) {
 		&donacion.TransactionID,
 		&donacion.PaymentID,
 		&donacion.FechaPago,
+		&donacion.UsuarioNombre,
+		&donacion.UsuarioApellidos,
+		&apellidoMaterno,
+		&donacion.ModuloTitulo,
+		&donacion.CursoNombre,
 	)
 
 	if err != nil {
@@ -67,13 +82,28 @@ func (pc *PostgreSQL) GetById(id int) (*entities.Donacion, error) {
 		return nil, fmt.Errorf("failed to get donacion by id: %v", err)
 	}
 
+	// Concatenar apellidos
+	if apellidoMaterno.Valid {
+		donacion.UsuarioApellidos += " " + apellidoMaterno.String
+	}
+
 	return &donacion, nil
 }
 
-// GetAll - Obtener todas las donaciones
+// GetAll - Obtener todas las donaciones con nombres
 func (pc *PostgreSQL) GetAll() ([]entities.Donacion, error) {
-	query := `SELECT id, usuario_id, modulo_id, monto, moneda, estado, metodo_pago, transaction_id, payment_id, fecha_pago 
-              FROM donaciones ORDER BY fecha_pago DESC`
+	query := `SELECT 
+              d.id, d.usuario_id, d.modulo_id, d.monto, d.moneda, d.estado, 
+              d.metodo_pago, d.transaction_id, d.payment_id, d.fecha_pago,
+              u.nombres, 
+              CONCAT(u.apellido_paterno, COALESCE(' ' || u.apellido_materno, '')) as apellidos,
+              m.titulo, 
+              c.nombre
+              FROM donaciones d
+              LEFT JOIN usuarios u ON d.usuario_id = u.id
+              LEFT JOIN modulos m ON d.modulo_id = m.id
+              LEFT JOIN cursos c ON m.id_curso = c.id
+              ORDER BY d.fecha_pago DESC`
 
 	rows, err := pc.conn.Query(query)
 	if err != nil {
@@ -95,6 +125,10 @@ func (pc *PostgreSQL) GetAll() ([]entities.Donacion, error) {
 			&donacion.TransactionID,
 			&donacion.PaymentID,
 			&donacion.FechaPago,
+			&donacion.UsuarioNombre,
+			&donacion.UsuarioApellidos,
+			&donacion.ModuloTitulo,
+			&donacion.CursoNombre,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan donacion: %v", err)
@@ -109,10 +143,21 @@ func (pc *PostgreSQL) GetAll() ([]entities.Donacion, error) {
 	return donaciones, nil
 }
 
-// GetByUsuarioID - Obtener donaciones por usuario
+// GetByUsuarioID - Obtener donaciones por usuario con nombres
 func (pc *PostgreSQL) GetByUsuarioID(usuarioID int) ([]entities.Donacion, error) {
-	query := `SELECT id, usuario_id, modulo_id, monto, moneda, estado, metodo_pago, transaction_id, payment_id, fecha_pago 
-              FROM donaciones WHERE usuario_id = $1 ORDER BY fecha_pago DESC`
+	query := `SELECT 
+              d.id, d.usuario_id, d.modulo_id, d.monto, d.moneda, d.estado, 
+              d.metodo_pago, d.transaction_id, d.payment_id, d.fecha_pago,
+              u.nombres, 
+              CONCAT(u.apellido_paterno, COALESCE(' ' || u.apellido_materno, '')) as apellidos,
+              m.titulo, 
+              c.nombre
+              FROM donaciones d
+              LEFT JOIN usuarios u ON d.usuario_id = u.id
+              LEFT JOIN modulos m ON d.modulo_id = m.id
+              LEFT JOIN cursos c ON m.id_curso = c.id
+              WHERE d.usuario_id = $1 
+              ORDER BY d.fecha_pago DESC`
 
 	rows, err := pc.conn.Query(query, usuarioID)
 	if err != nil {
@@ -134,6 +179,10 @@ func (pc *PostgreSQL) GetByUsuarioID(usuarioID int) ([]entities.Donacion, error)
 			&donacion.TransactionID,
 			&donacion.PaymentID,
 			&donacion.FechaPago,
+			&donacion.UsuarioNombre,
+			&donacion.UsuarioApellidos,
+			&donacion.ModuloTitulo,
+			&donacion.CursoNombre,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan donacion: %v", err)
@@ -148,10 +197,21 @@ func (pc *PostgreSQL) GetByUsuarioID(usuarioID int) ([]entities.Donacion, error)
 	return donaciones, nil
 }
 
-// GetByModuloID - Obtener donaciones por módulo
+// GetByModuloID - Obtener donaciones por módulo con nombres
 func (pc *PostgreSQL) GetByModuloID(moduloID int) ([]entities.Donacion, error) {
-	query := `SELECT id, usuario_id, modulo_id, monto, moneda, estado, metodo_pago, transaction_id, payment_id, fecha_pago 
-              FROM donaciones WHERE modulo_id = $1 ORDER BY fecha_pago DESC`
+	query := `SELECT 
+              d.id, d.usuario_id, d.modulo_id, d.monto, d.moneda, d.estado, 
+              d.metodo_pago, d.transaction_id, d.payment_id, d.fecha_pago,
+              u.nombres, 
+              CONCAT(u.apellido_paterno, COALESCE(' ' || u.apellido_materno, '')) as apellidos,
+              m.titulo, 
+              c.nombre
+              FROM donaciones d
+              LEFT JOIN usuarios u ON d.usuario_id = u.id
+              LEFT JOIN modulos m ON d.modulo_id = m.id
+              LEFT JOIN cursos c ON m.id_curso = c.id
+              WHERE d.modulo_id = $1 
+              ORDER BY d.fecha_pago DESC`
 
 	rows, err := pc.conn.Query(query, moduloID)
 	if err != nil {
@@ -173,6 +233,10 @@ func (pc *PostgreSQL) GetByModuloID(moduloID int) ([]entities.Donacion, error) {
 			&donacion.TransactionID,
 			&donacion.PaymentID,
 			&donacion.FechaPago,
+			&donacion.UsuarioNombre,
+			&donacion.UsuarioApellidos,
+			&donacion.ModuloTitulo,
+			&donacion.CursoNombre,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan donacion: %v", err)
@@ -187,10 +251,21 @@ func (pc *PostgreSQL) GetByModuloID(moduloID int) ([]entities.Donacion, error) {
 	return donaciones, nil
 }
 
-// GetByEstado - Obtener donaciones por estado
+// GetByEstado - Obtener donaciones por estado con nombres
 func (pc *PostgreSQL) GetByEstado(estado string) ([]entities.Donacion, error) {
-	query := `SELECT id, usuario_id, modulo_id, monto, moneda, estado, metodo_pago, transaction_id, payment_id, fecha_pago 
-              FROM donaciones WHERE estado = $1 ORDER BY fecha_pago DESC`
+	query := `SELECT 
+              d.id, d.usuario_id, d.modulo_id, d.monto, d.moneda, d.estado, 
+              d.metodo_pago, d.transaction_id, d.payment_id, d.fecha_pago,
+              u.nombres, 
+              CONCAT(u.apellido_paterno, COALESCE(' ' || u.apellido_materno, '')) as apellidos,
+              m.titulo, 
+              c.nombre
+              FROM donaciones d
+              LEFT JOIN usuarios u ON d.usuario_id = u.id
+              LEFT JOIN modulos m ON d.modulo_id = m.id
+              LEFT JOIN cursos c ON m.id_curso = c.id
+              WHERE d.estado = $1 
+              ORDER BY d.fecha_pago DESC`
 
 	rows, err := pc.conn.Query(query, estado)
 	if err != nil {
@@ -212,6 +287,10 @@ func (pc *PostgreSQL) GetByEstado(estado string) ([]entities.Donacion, error) {
 			&donacion.TransactionID,
 			&donacion.PaymentID,
 			&donacion.FechaPago,
+			&donacion.UsuarioNombre,
+			&donacion.UsuarioApellidos,
+			&donacion.ModuloTitulo,
+			&donacion.CursoNombre,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan donacion: %v", err)
