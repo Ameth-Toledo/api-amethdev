@@ -81,6 +81,9 @@ func main() {
 		likeDependencies.GetMostLikedModulosController,
 		likeDependencies.GetLikesByUserController,
 		likeDependencies.GetLikeStatsController,
+		likeDependencies.GetAllModulosController,
+		likeDependencies.GetLikesByModuloWithUserInfoController,
+		likeDependencies.GetLikesByUserWithModuleInfoController,
 	)
 
 	donacionDependencies := donacionInfra.InitDonaciones()

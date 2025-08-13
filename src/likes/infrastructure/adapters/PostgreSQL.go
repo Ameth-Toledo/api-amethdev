@@ -70,6 +70,61 @@ func (pl *PostgreSQL) GetByModulo(moduloID int) ([]entities.Like, error) {
 	return likes, nil
 }
 
+// GetByModuloWithUserInfo - Obtener likes de un módulo con información del usuario
+func (pl *PostgreSQL) GetByModuloWithUserInfo(moduloID int) ([]domain.LikeWithUserInfo, error) {
+	query := `
+        SELECT 
+            l.id, 
+            l.modulo_id, 
+            COALESCE(m.titulo, 'Módulo Sin Título') as modulo_titulo,
+            l.usuario_id, 
+            u.nombres as usuario_nombre,
+            CONCAT(u.apellido_paterno, 
+                   CASE 
+                       WHEN u.apellido_materno IS NOT NULL AND u.apellido_materno != '' 
+                       THEN ' ' || u.apellido_materno 
+                       ELSE '' 
+                   END) as usuario_apellido,
+            l.fingerprint_hash, 
+            l.fecha 
+        FROM likes l 
+        LEFT JOIN modulos m ON l.modulo_id = m.id
+        LEFT JOIN usuarios u ON l.usuario_id = u.id
+        WHERE l.modulo_id = $1 
+        ORDER BY l.fecha DESC`
+
+	rows, err := pl.conn.Query(query, moduloID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get likes with user info: %v", err)
+	}
+	defer rows.Close()
+
+	var likes []domain.LikeWithUserInfo
+	for rows.Next() {
+		var like domain.LikeWithUserInfo
+		err := rows.Scan(
+			&like.ID,
+			&like.ModuloID,
+			&like.ModuloTitulo,
+			&like.UsuarioID,
+			&like.UsuarioNombre,
+			&like.UsuarioApellido,
+			&like.FingerprintHash,
+			&like.Fecha,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan like with user info: %v", err)
+		}
+		likes = append(likes, like)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %v", err)
+	}
+
+	return likes, nil
+}
+
 // GetByModuloAndUser - Obtener like específico por módulo y usuario
 func (pl *PostgreSQL) GetByModuloAndUser(moduloID int, usuarioID int) (*entities.Like, error) {
 	query := `SELECT id, modulo_id, usuario_id, fingerprint_hash, fecha 
@@ -220,12 +275,16 @@ func (pl *PostgreSQL) CheckIfFingerprintLiked(moduloID int, fingerprint string) 
 	return exists, nil
 }
 
-// GetMostLikedModulos - Obtener módulos más likeados
+// GetMostLikedModulos - Obtener módulos más likeados con títulos (VERSIÓN ACTUALIZADA)
 func (pl *PostgreSQL) GetMostLikedModulos(limit int) ([]domain.ModuloWithLikes, error) {
 	query := `
-        SELECT modulo_id, COUNT(*) as like_count 
-        FROM likes 
-        GROUP BY modulo_id 
+        SELECT 
+            l.modulo_id, 
+            COALESCE(m.titulo, 'Módulo Sin Título') as modulo_titulo,
+            COUNT(*) as like_count 
+        FROM likes l
+        LEFT JOIN modulos m ON l.modulo_id = m.id
+        GROUP BY l.modulo_id, m.titulo
         ORDER BY like_count DESC 
         LIMIT $1`
 
@@ -238,7 +297,7 @@ func (pl *PostgreSQL) GetMostLikedModulos(limit int) ([]domain.ModuloWithLikes, 
 	var modulos []domain.ModuloWithLikes
 	for rows.Next() {
 		var modulo domain.ModuloWithLikes
-		err := rows.Scan(&modulo.ModuloID, &modulo.LikeCount)
+		err := rows.Scan(&modulo.ModuloID, &modulo.ModuloTitulo, &modulo.LikeCount)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan modulo with likes: %v", err)
 		}
@@ -286,6 +345,61 @@ func (pl *PostgreSQL) GetLikesByUser(usuarioID int) ([]entities.Like, error) {
 	return likes, nil
 }
 
+// GetLikesByUserWithModuleInfo - Obtener likes de un usuario con información del módulo
+func (pl *PostgreSQL) GetLikesByUserWithModuleInfo(usuarioID int) ([]domain.LikeWithUserInfo, error) {
+	query := `
+        SELECT 
+            l.id, 
+            l.modulo_id, 
+            COALESCE(m.titulo, 'Módulo Sin Título') as modulo_titulo,
+            l.usuario_id, 
+            u.nombres as usuario_nombre,
+            CONCAT(u.apellido_paterno, 
+                   CASE 
+                       WHEN u.apellido_materno IS NOT NULL AND u.apellido_materno != '' 
+                       THEN ' ' || u.apellido_materno 
+                       ELSE '' 
+                   END) as usuario_apellido,
+            l.fingerprint_hash, 
+            l.fecha 
+        FROM likes l 
+        LEFT JOIN modulos m ON l.modulo_id = m.id
+        LEFT JOIN usuarios u ON l.usuario_id = u.id
+        WHERE l.usuario_id = $1 
+        ORDER BY l.fecha DESC`
+
+	rows, err := pl.conn.Query(query, usuarioID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user likes with module info: %v", err)
+	}
+	defer rows.Close()
+
+	var likes []domain.LikeWithUserInfo
+	for rows.Next() {
+		var like domain.LikeWithUserInfo
+		err := rows.Scan(
+			&like.ID,
+			&like.ModuloID,
+			&like.ModuloTitulo,
+			&like.UsuarioID,
+			&like.UsuarioNombre,
+			&like.UsuarioApellido,
+			&like.FingerprintHash,
+			&like.Fecha,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user like with module info: %v", err)
+		}
+		likes = append(likes, like)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %v", err)
+	}
+
+	return likes, nil
+}
+
 // GetLikesByFingerprint - Obtener todos los likes de un fingerprint
 func (pl *PostgreSQL) GetLikesByFingerprint(fingerprint string) ([]entities.Like, error) {
 	query := `SELECT id, modulo_id, usuario_id, fingerprint_hash, fecha 
@@ -320,14 +434,53 @@ func (pl *PostgreSQL) GetLikesByFingerprint(fingerprint string) ([]entities.Like
 	return likes, nil
 }
 
-// GetLikeStatsByDateRange - Obtener estadísticas de likes por rango de fechas
+// GetAllModulos - Obtener todos los módulos para el selector
+func (pl *PostgreSQL) GetAllModulos() ([]domain.ModuloOption, error) {
+	query := `SELECT id, titulo FROM modulos ORDER BY titulo ASC`
+
+	rows, err := pl.conn.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get modulos: %v", err)
+	}
+	defer rows.Close()
+
+	var modulos []domain.ModuloOption
+	for rows.Next() {
+		var modulo domain.ModuloOption
+		err := rows.Scan(&modulo.ID, &modulo.Titulo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan modulo: %v", err)
+		}
+		modulos = append(modulos, modulo)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %v", err)
+	}
+
+	return modulos, nil
+}
+
+// GetLikeStatsByDateRange - Obtener estadísticas de likes por rango de fechas (VERSIÓN ACTUALIZADA)
 func (pl *PostgreSQL) GetLikeStatsByDateRange(moduloID int, startDate, endDate time.Time) (*domain.LikeStats, error) {
+	// Obtener información básica del módulo
+	var moduloTitulo string
+	moduleQuery := `SELECT COALESCE(titulo, 'Módulo Sin Título') FROM modulos WHERE id = $1`
+	err := pl.conn.QueryRow(moduleQuery, moduloID).Scan(&moduloTitulo)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			moduloTitulo = fmt.Sprintf("Módulo %d", moduloID)
+		} else {
+			return nil, fmt.Errorf("failed to get module title: %v", err)
+		}
+	}
+
 	// Obtener total de likes en el período
 	totalQuery := `SELECT COUNT(*) FROM likes 
                    WHERE modulo_id = $1 AND fecha >= $2 AND fecha <= $3`
 
 	var totalLikes int
-	err := pl.conn.QueryRow(totalQuery, moduloID, startDate, endDate).Scan(&totalLikes)
+	err = pl.conn.QueryRow(totalQuery, moduloID, startDate, endDate).Scan(&totalLikes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total likes: %v", err)
 	}
@@ -390,12 +543,13 @@ func (pl *PostgreSQL) GetLikeStatsByDateRange(moduloID int, startDate, endDate t
 	}
 
 	return &domain.LikeStats{
-		ModuloID:   moduloID,
-		StartDate:  startDate,
-		EndDate:    endDate,
-		TotalLikes: totalLikes,
-		DailyStats: dailyStats,
-		TopHours:   hourlyStats,
+		ModuloID:     moduloID,
+		ModuloTitulo: moduloTitulo,
+		StartDate:    startDate,
+		EndDate:      endDate,
+		TotalLikes:   totalLikes,
+		DailyStats:   dailyStats,
+		TopHours:     hourlyStats,
 	}, nil
 }
 
