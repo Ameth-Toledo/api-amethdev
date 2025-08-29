@@ -3,17 +3,20 @@ package controllers
 import (
 	"AmethToledo/src/cursos/application"
 	"AmethToledo/src/cursos/domain/entities"
+	"AmethToledo/src/notifications"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 type CreateCursoController struct {
 	createCurso *application.CreateCurso
+	hub         *notifications.Hub
 }
 
-func NewCreateCursoController(createCurso *application.CreateCurso) *CreateCursoController {
+func NewCreateCursoController(createCurso *application.CreateCurso, hub *notifications.Hub) *CreateCursoController {
 	return &CreateCursoController{
 		createCurso: createCurso,
+		hub:         hub,
 	}
 }
 
@@ -49,6 +52,16 @@ func (cc *CreateCursoController) Execute(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	cc.hub.BroadcastNotification(
+		"course_created",
+		"¡Nuevo curso disponible!",
+		map[string]interface{}{
+			"curso":   savedCurso,
+			"titulo":  savedCurso.Nombre,
+			"mensaje": "Se ha agregado un nuevo curso de " + savedCurso.Tecnologia,
+		},
+	)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Curso creado exitosamente",

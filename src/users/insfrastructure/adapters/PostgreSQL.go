@@ -134,14 +134,14 @@ func (pc *PostgreSQL) GetById(id int) (*entities.User, error) {
 	return &user, nil
 }
 
-// GetTotal - Obtener total de cursos
+// GetTotal - Obtener total de usuarios
 func (pc *PostgreSQL) GetTotal() (int, error) {
 	query := `SELECT COUNT(*) FROM usuarios`
 
 	var total int
 	err := pc.conn.QueryRow(query).Scan(&total)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get total cursos: %v", err)
+		return 0, fmt.Errorf("failed to get total usuarios: %v", err)
 	}
 
 	return total, nil
