@@ -13,7 +13,6 @@ import (
 	likeRoutes "AmethToledo/src/likes/infrastructure/routes"
 	moduloInfra "AmethToledo/src/modulos/infrastructure"
 	moduloRoutes "AmethToledo/src/modulos/infrastructure/routes"
-	"AmethToledo/src/notifications"
 	userInfra "AmethToledo/src/users/insfrastructure"
 	userRoutes "AmethToledo/src/users/insfrastructure/routes"
 	"github.com/gin-contrib/cors"
@@ -31,10 +30,6 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	hub := notifications.NewHub()
-
-	go hub.Run()
-
 	userDependencies := userInfra.InitUsers()
 	userRoutes.ConfigureUserRoutes(r,
 		userDependencies.CreateUserController,
@@ -46,7 +41,7 @@ func main() {
 		userDependencies.AuthController,
 	)
 
-	cursoDependencies := cursoInfra.InitCursos(hub)
+	cursoDependencies := cursoInfra.InitCursos()
 	cursoRoutes.ConfigureCursoRoutes(r,
 		cursoDependencies.CreateCursoController,
 		cursoDependencies.GetAllCursosController,
@@ -55,7 +50,6 @@ func main() {
 		cursoDependencies.DeleteCursoController,
 		cursoDependencies.SearchCursosController,
 		cursoDependencies.GetTotalCursosController,
-		cursoDependencies.Hub,
 	)
 
 	moduloDependencies := moduloInfra.InitModulos()

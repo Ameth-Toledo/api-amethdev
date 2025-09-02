@@ -2,7 +2,6 @@ package routes
 
 import (
 	"AmethToledo/src/cursos/infrastructure/controllers"
-	"AmethToledo/src/notifications"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,10 +13,8 @@ func ConfigureCursoRoutes(router *gin.Engine,
 	deleteCursoController *controllers.DeleteCursoController,
 	searchCursosController *controllers.SearchCursosController,
 	getTotalCursosController *controllers.GetTotalCursosController,
-	hub *notifications.Hub,
 ) {
-	router.GET("/ws/notifications", gin.WrapF(hub.HandleWebSocket))
-
+	// Rutas para cursos
 	cursoGroup := router.Group("/cursos")
 	{
 		cursoGroup.POST("", createCursoController.Execute)         // POST /cursos
